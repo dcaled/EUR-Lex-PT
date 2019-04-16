@@ -1,3 +1,7 @@
+#Keras Layer that implements an Attention mechanism, with a context/query vector, for temporal data. Supports Masking. 
+#Follows the work of Yang et al. [https://www.cs.cmu.edu/~diyiy/docs/naacl16.pdf] "Hierarchical Attention Networks for Document Classification" 
+## Based on model from https://gist.github.com/cbaziotis/7ef97ccf71cbc14366835198c09809d2
+
 from keras.engine.topology import Layer
 from keras import initializers as initializers, regularizers, constraints
 from keras import backend as K
