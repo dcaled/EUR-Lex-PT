@@ -14,7 +14,7 @@
 
 2. Download CBOW 300 dimensions (cbow_s300.zip) from [NILC-Embeddings](http://143.107.183.175:22980/download.php?file=embeddings/wang2vec/cbow_s300.zip) and unzip it to ```data/embeddings/``` directory.
 
-3. Download the pre-processed EUR-Lex-PT dataset ```clean_txt_withallwords.json``` from [here]() to ```data/``` directory.
+3. Download the pre-processed EUR-Lex-PT dataset ```clean_txt_withallwords.json``` from [here](https://drive.google.com/file/d/1f2nIAL5Ef30vPeMi4j2YOpChQBcaJUQA/view?usp=sharing) to ```data/``` directory.
 
 4. Run ```classifier/hierarchical.py```.
 
