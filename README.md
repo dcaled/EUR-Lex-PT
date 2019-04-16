@@ -5,11 +5,11 @@
 **Installation**
 1. Please, install the packages listed on the ```requirements.txt``` file. 
 
-1.1 Run ```virtualenv -p python3 envname```
+    1.1 Run ```virtualenv -p python3 envname```
 
-1.2 Run ```envname/bin/pip install -r requirements.txt```
+    1.2 Run ```envname/bin/pip install -r requirements.txt```
 
-2. Download CBOW 300 dimensions (cbow_s300.zip) from [NILC-Embeddings](143.107.183.175:22980/download.php?file=embeddings/word2vec/cbow_s300.zip) and unzip it to ```data/embeddings/``` directory.
+2. Download CBOW 300 dimensions (cbow_s300.zip) from [NILC-Embeddings](http://143.107.183.175:22980/download.php?file=embeddings/wang2vec/cbow_s300.zip) and unzip it to ```data/embeddings/``` directory.
 
 3. Run ```classifier/hierarchical.py```.
 
