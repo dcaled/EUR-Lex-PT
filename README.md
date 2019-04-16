@@ -1,4 +1,6 @@
-# EUR-Lex-PT
+# Repository of the **_add_** paper: A Hierarchical Label Network for Multi-Label EuroVoc Classification of Legislative Contents
+
+- BibTeX:
 
 ## Classifier
 
