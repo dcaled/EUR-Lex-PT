@@ -36,13 +36,13 @@ The pre-processed EUR-Lex-PT is formated with a JSON representation as follows:
 }
 ```
 
-The documents' sentences (```"txt"``` field) are separated by a ```__SENT__``` delimiter.
+**Note:** The documents' sentences (```"txt"``` field) are separated by a ```__SENT__``` delimiter.
 
 
 
 ### EUR-Lex-PT LIBSVM format
 
-The EUR-Lex-PT corpus is also available under the LIBSVM format at [EUR-Lex-PT LIBSVM](https://drive.google.com/drive/folders/1QE9ICV0D-qK9EprVxAMxWI9nuLpfoxXI?usp=sharing): 
+The EUR-Lex-PT corpus is also available under the LIBSVM format at [EUR-Lex-PT LIBSVM](https://drive.google.com/file/d/1u2BCJRH-BC4l9wCgRoDkLnGGvj9fwj5d/view?usp=sharing): 
 
 - Each LIBSVM file contains a header in the format:
 
@@ -64,8 +64,8 @@ The EuroVoc thesaurus can be found at the ```data/eurovoc.json``` file. Each des
             "descriptor_label_1",
             "descriptor_label_2",
         ],
-        "pt": "descriptor_label",
-        "mts": {
+        "preferred_term": "descriptor_label",
+        "micro-thesauri": {
             "micro-thesaurus_index_1": "micro-thesaurus_label_1",
             "micro-thesaurus_index_2": "micro-thesaurus_label_2"
         },
