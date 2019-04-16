@@ -16,6 +16,22 @@
 
 ## Data
 
+### EUR-Lex-PT
+
+
+### EUR-Lex-PT LIBSVM format
+
+The EUR-Lex-PT corpus is also available under the LIBSVM format at [EUR-Lex-PT LIBSVM](https://drive.google.com/drive/folders/1QE9ICV0D-qK9EprVxAMxWI9nuLpfoxXI?usp=sharing): 
+
+Each LIBSVM file contains a header in the format:
+
+```<#instances> <#features> <#classes>```
+
+The other lines of the LIBSVM files are in the format:
+
+```<label> <index1>:<value1> <index2>:<value2> ...```
+
+
 ### EuroVoc Thesaurus
 
 The EuroVoc thesaurus can be found at the ```data/eurovoc.json``` file. Each descriptor is organized according to the structure presented bellow. As the descriptors may contain equivalent terms (preferred and non-preferred), we list all these terms under the ```terms``` list.
