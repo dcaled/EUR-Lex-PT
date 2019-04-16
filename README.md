@@ -1,5 +1,11 @@
 # EUR-Lex-PT
 
+## Classifier
+
+1. Please, install the packages listed on the ```requirements.txt``` file.
+2. Run ```classifier/hierarchical.py```.
+
+
 ## Data
 
 ### EuroVoc Thesaurus
