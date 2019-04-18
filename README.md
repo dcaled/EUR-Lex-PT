@@ -5,6 +5,8 @@
 ## Overview
 This repository contains EUR-Lex PT, a large scale and multi-label dataset with more than 220k documents, labeled under the three EuroVoc hierarchical levels. The dataset is available with the original division in training (64%), validation (16%), and test (20%) sub-sets. The training, validation and test sets have 140883, 35189 and 44254 documents, respectively, and the entire corpus has a vocabulary with 42556 words.
 
+We also added the source code of our hierarchical deep learning model (HLAN) to address the classification of legal documents according to the EuroVoc thesaurus. Instead of training a classifier for each level, our model allows the simultaneous prediction of the three levels of the EuroVoc thesaurus.
+
 ## Classifier
 
 **Installation**
