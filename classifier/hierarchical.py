@@ -120,7 +120,7 @@ if True:
 
     y_train = defaultdict(list)
     celex_train = []
-    with io.open('../data/train_val.txt') as f:
+    with io.open('../data/stratification/train_val.txt') as f:
         for i,line in enumerate(f):
             if i >= N_SAMPLE_train:
                 break
@@ -138,7 +138,7 @@ if True:
 
     y_test = defaultdict(list)
     celex_test = []
-    with io.open('../data/test.txt') as f:
+    with io.open('../data/stratification/test.txt') as f:
         for i,line in enumerate(f):
             if i >= N_SAMPLE_test:
                 break
