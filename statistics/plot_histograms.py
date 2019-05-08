@@ -35,13 +35,15 @@ def labels_per_doc(celex_labels):
     plt.savefig("labels_per_instance_gray.png")
 
 
-def docs_per_label(docs_per_lbl, suffix):
+matched_lbl_text = {}
+
+def docs_per_label(docs_per_lbl, suffix, show_x_labels: bool = False):
     
     plt.clf()
 
     plt.style.use('seaborn-deep')
 
-    plt.figure(0, figsize=(9, 3.5))
+    plt.figure(0, figsize=(9, 3.8))
 
     x_dom = sorted(docs_per_lbl['doms'],
                    key=docs_per_lbl['doms'].get, reverse=True)
@@ -64,7 +66,14 @@ def docs_per_label(docs_per_lbl, suffix):
     plt.ylim(0, yy_max)
 
     plt.bar(x_dom, y_dom)
-    plt.xticks([])
+
+    if show_x_labels:
+        x_dom_names = [matched_lbl_text[x] for x in x_dom]
+        #plt.xticks(x_dom)
+        plt.xticks(x_dom_names)
+    else:
+        plt.xticks([])
+    
     plt.title('Level: domain')
     plt.xlabel("Labels")
     plt.ylabel("Frequency")
@@ -73,14 +82,21 @@ def docs_per_label(docs_per_lbl, suffix):
     plt.subplot(1, 2, 2)
     plt.ylim(0, yy_max)
     #plt.ylim(0, 100000)
-    plt.xticks([])
+    #plt.xticks([])
+    #
     plt.yticks([])
     plt.bar(x_mts, y_mts)
+    if show_x_labels:
+        x_mts_names = [matched_lbl_text[x] for x in x_mts]
+        #plt.xticks(x_mts)
+        plt.xticks(x_mts_names, rotation='45')
+    else:
+        plt.xticks([])
     plt.title('Level: micro-thesaurus')
     plt.xlabel("Labels")
     plt.ylabel("Frequency")
 
-    plt.savefig("docs_per_lbl_color_" + suffix + ".png")
+    plt.savefig("docs_per_lbl_color_" + suffix + ".png", bbox_inches = "tight")
 
     print('\n')
 
@@ -171,7 +187,7 @@ docs_per_lbl = {'doms': {}, 'mts': {}, 'terms': {}}
 stratification_path = '../data/stratification'
 
 #target_words = ['portugal']
-target_words = ['portugal', 'português', 'portugueses', 'portaria', 'despacho']
+target_words = ['portugal', 'português', 'portugueses', 'portaria', 'despacho', 'criminal', 'migrante', 'migração', 'nacionalidade']
 
 filtered_kw_map, filtered_doms, filtered_mts, filtered_terms = get_portuguese_kw_map(target_words)
 
@@ -200,6 +216,8 @@ for tw in filtered_terms:
       docs_per_target_word[tw] = {'doms': {}, 'mts': {}, 'terms': {}}
 
 
+
+
 splits = ['train', 'val', 'test']
 for split in splits:
     with io.open('{}/{}.txt'.format(stratification_path, split)) as f:
@@ -226,6 +244,7 @@ for split in splits:
                         if lbl == filtered_tuple[0]:
                             docs_per_target_word[tw]['doms'][lbl] = docs_per_target_word[tw]['doms'].get(
                         lbl, 0) + 1
+                            matched_lbl_text[lbl] = filtered_tuple[1]
 
             for lbl in mts:
                 docs_per_lbl['mts'][lbl] = docs_per_lbl['mts'].get(lbl, 0) + 1
@@ -233,8 +252,9 @@ for split in splits:
                 for tw in filtered_mts:
                       for filtered_tuple in filtered_mts[tw]:
                         if lbl == filtered_tuple[0]:
-                              docs_per_target_word[tw]['mts'][lbl] = docs_per_target_word[tw]['mts'].get(
+                            docs_per_target_word[tw]['mts'][lbl] = docs_per_target_word[tw]['mts'].get(
                         lbl, 0) + 1
+                            matched_lbl_text[lbl] = filtered_tuple[1]
 
             for lbl in terms:
                 docs_per_lbl['terms'][lbl] = docs_per_lbl['terms'].get(
@@ -243,8 +263,9 @@ for split in splits:
                 for tw in filtered_terms:
                   for filtered_tuple in filtered_terms[tw]:
                         if lbl == filtered_tuple[0]:
-                              docs_per_target_word[tw]['terms'][lbl] = docs_per_target_word[tw]['terms'].get(
+                            docs_per_target_word[tw]['terms'][lbl] = docs_per_target_word[tw]['terms'].get(
                         lbl, 0) + 1
+                            matched_lbl_text[lbl] = filtered_tuple[1]
 
 
 ######## Labels per doc ########
@@ -262,7 +283,7 @@ for current_word in docs_per_target_word:
 
 
       if len(docs_per_target_word[current_word]['doms']) > 0 and len(docs_per_target_word[current_word]['mts']) > 0:
-            docs_per_label(docs_per_target_word[current_word], current_word)
+            docs_per_label(docs_per_target_word[current_word], current_word, True)
 
 
 
