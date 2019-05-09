@@ -43,7 +43,9 @@ def docs_per_label(docs_per_lbl, suffix, show_x_labels: bool = False):
 
     plt.style.use('seaborn-deep')
 
-    plt.figure(0, figsize=(9, 3.8))
+    plt.figure(0, figsize=(9, 4.0))
+
+    ax = plt.gca()
 
     x_dom = sorted(docs_per_lbl['doms'],
                    key=docs_per_lbl['doms'].get, reverse=True)
@@ -59,7 +61,7 @@ def docs_per_label(docs_per_lbl, suffix, show_x_labels: bool = False):
 
 
     plt.subplot(1, 2, 1)
-#    plt.ylim(0, 100000)
+
 
     yy_max = int(max(y_dom) * 1.15)
 
@@ -69,31 +71,36 @@ def docs_per_label(docs_per_lbl, suffix, show_x_labels: bool = False):
 
     if show_x_labels:
         x_dom_names = [matched_lbl_text[x] for x in x_dom]
-        #plt.xticks(x_dom)
-        plt.xticks(x_dom_names)
+        
+        index = range(len(x_dom_names))
+        #plt.xticks(index, x_dom_names, rotation='80')
+        plt.xticks(index, x_dom_names, rotation='90')
+
     else:
         plt.xticks([])
     
     plt.title('Level: domain')
-    plt.xlabel("Labels")
+    #plt.xlabel("Labels")
     plt.ylabel("Frequency")
 
-    #plt.legend(loc='upper right')
     plt.subplot(1, 2, 2)
     plt.ylim(0, yy_max)
-    #plt.ylim(0, 100000)
-    #plt.xticks([])
-    #
+
     plt.yticks([])
     plt.bar(x_mts, y_mts)
     if show_x_labels:
         x_mts_names = [matched_lbl_text[x] for x in x_mts]
-        #plt.xticks(x_mts)
-        plt.xticks(x_mts_names, rotation='45')
+
+        index = range(len(x_mts_names))
+        plt.xticks(index, x_mts_names, rotation='90')
+        #plt.xticks(index, x_mts_names, rotation='80')
+
+        print(x_mts)
+        print(x_mts_names)
     else:
         plt.xticks([])
     plt.title('Level: micro-thesaurus')
-    plt.xlabel("Labels")
+    #plt.xlabel("Labels")
     plt.ylabel("Frequency")
 
     plt.savefig("docs_per_lbl_color_" + suffix + ".png", bbox_inches = "tight")
@@ -268,7 +275,7 @@ for split in splits:
                             matched_lbl_text[lbl] = filtered_tuple[1]
 
 
-######## Labels per doc ########
+######## Labels per doc  
 labels_per_doc(celex_labels)
 
 
