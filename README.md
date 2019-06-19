@@ -1,4 +1,4 @@
-### Repository of the TPDL 2018 paper: [A Hierarchical Label Network for Multi-Label EuroVoc Classification of Legislative Contents]()
+### Repository of the TPDL 2019 paper: [A Hierarchical Label Network for Multi-Label EuroVoc Classification of Legislative Contents]()
 
 - BibTeX:
 
