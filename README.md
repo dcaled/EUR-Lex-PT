@@ -1,16 +1,19 @@
-### Repository of the TPDL 2019 paper: [A Hierarchical Label Network for Multi-Label EuroVoc Classification of Legislative Contents]()
+### Repository of the TPDL 2019 paper: [A Hierarchical Label Network for Multi-Label EuroVoc Classification of Legislative Contents](https://link.springer.com/chapter/10.1007/978-3-030-30760-8_21)
 
 Article published at: 23rd International Conference on Theory and Practice of Digital Libraries, TPDL 2019, Oslo, Norway, September 9-12, 2019, Proceedings
 
 - BibTeX:
-```@InProceedings{10.1007/978-3-030-30760-8_21,
+
+```
+@InProceedings{HLAN2019,
 author="Caled, Danielle and Won, Miguel  and Martins, Bruno and Silva, M{\'a}rio J.",
 title="A Hierarchical Label Network for Multi-label EuroVoc Classification of Legislative Contents",
 booktitle="Digital Libraries for Open Knowledge",
 year="2019",
 pages="238--252",
 isbn="978-3-030-30760-8"
-}```
+}
+```
 
 
 
