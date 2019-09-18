@@ -24,10 +24,14 @@ We also added the source code of our hierarchical deep learning model (HLAN) to 
 
 ## Classifier
 
+- This model was implemented with Python 3.6.
+- For installation, we recommend the usage of [virtualenv](https://virtualenv.pypa.io/en/latest/).
+
 **Installation**
+
 1. Please, install the packages listed on the ```requirements.txt``` file. 
 
-    1.1 Run ```virtualenv -p python3 envname```
+    1.1 Create a virtual environment: ```virtualenv -p python3 envname```
 
     1.2 Run ```envname/bin/pip install -r requirements.txt```
 
