@@ -1,6 +1,6 @@
 ### Repository of the TPDL 2019 paper: [A Hierarchical Label Network for Multi-Label EuroVoc Classification of Legislative Contents](https://link.springer.com/chapter/10.1007/978-3-030-30760-8_21)
 
-Article published at: 23rd International Conference on Theory and Practice of Digital Libraries, TPDL 2019, Oslo, Norway, September 9-12, 2019, Proceedings
+Article published at: 23rd International Conference on Theory and Practice of Digital Libraries, TPDL 2019, Oslo, Norway, September 9-12, 2019, Proceedings.
 
 - BibTeX:
 
@@ -24,16 +24,20 @@ We also added the source code of our hierarchical deep learning model (HLAN) to 
 
 ## Classifier
 
+- This model was implemented with Python 3.6.
+- For installation, we recommend the usage of [virtualenv](https://virtualenv.pypa.io/en/latest/).
+
 **Installation**
+
 1. Please, install the packages listed on the ```requirements.txt``` file. 
 
-    1.1 Run ```virtualenv -p python3 envname```
+    1.1 Create a virtual environment: ```virtualenv -p python3 envname```
 
     1.2 Run ```envname/bin/pip install -r requirements.txt```
 
 2. Download CBOW 300 dimensions (cbow_s300.zip) from [NILC-Embeddings](http://143.107.183.175:22980/download.php?file=embeddings/wang2vec/cbow_s300.zip) and unzip it to ```data/embeddings/``` directory.
 
-3. Download the pre-processed EUR-Lex-PT dataset ```clean_txt_withallwords.json``` from [here](https://drive.google.com/file/d/1f2nIAL5Ef30vPeMi4j2YOpChQBcaJUQA/view?usp=sharing) to ```data/``` directory.
+3. Download the pre-processed [EUR-Lex-PT](https://drive.google.com/file/d/1f2nIAL5Ef30vPeMi4j2YOpChQBcaJUQA/view?usp=sharing) dataset ```clean_txt_withallwords.json``` to ```data/``` directory.
 
 4. Run ```classifier/hierarchical.py```.
 
@@ -42,7 +46,7 @@ We also added the source code of our hierarchical deep learning model (HLAN) to 
 
 ### EUR-Lex-PT
 
-The pre-processed EUR-Lex-PT is formated with a JSON representation as follows: 
+The pre-processed [EUR-Lex-PT](https://drive.google.com/file/d/1f2nIAL5Ef30vPeMi4j2YOpChQBcaJUQA/view?usp=sharing) is formated with a JSON representation as follows: 
 
 ```
 {   
