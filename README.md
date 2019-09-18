@@ -39,8 +39,17 @@ We also added the source code of our hierarchical deep learning model (HLAN) to 
 
 3. Download the pre-processed [EUR-Lex-PT](https://drive.google.com/file/d/1f2nIAL5Ef30vPeMi4j2YOpChQBcaJUQA/view?usp=sharing) dataset ```clean_txt_withallwords.json``` to ```data/``` directory.
 
-4. Run ```classifier/hierarchical.py```.
 
+**Running the model**
+
+- **model input**: A json file containing documents with identifiers and textual data. 
+- **model output**: Predictions on EuroVoc labels for domain, microthesauri and descriptor levels.
+
+1. Run ```classifier/hierarchical.py```.
+
+2. The predicted EuroVoc labels are saved to the ```results/``` directory, according to each EuroVoc level. The correspondence of the EuroVoc labels and terms can be obtained from the EuroVoc Thesaurus at ```data/eurovoc.json```.
+
+*Attention*: You can provide your own input at a desired format by modifying the ```load_eurlex_pt``` function accordingly.
 
 ## Data
 
