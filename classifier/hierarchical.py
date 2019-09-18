@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-import io,json
+import io,sys,json
 import string
 from collections import defaultdict
 
@@ -56,10 +56,33 @@ def cleantext(txt):
     return new_text
 
 
+def save_results(y_true,y_pred,idx2code,filepath_results):
+    """Save to disk the ten EuroVoc labels with the higher probability."""
+    idx = (-y_pred).argsort(axis=-1)[:,:10]
+    with io.open(filepath_results,"w") as f_out:
+        for doc in idx:
+            eurovoc_labels = []
+            for lbl in doc:
+                eurovoc_labels+=[idx2code[lbl]]
+
+            f_out.write(" ".join(eurovoc_labels)+"\n")
+
+
+def load_codes(filepath_codes):
+    idx2code = dict()
+    for lvl in ["dom","mts","terms"]:
+        idx2code[lvl] = dict()
+        with io.open("{}codes_{}.txt".format(filepath_codes,lvl),"r") as f:
+            for cnt, line in enumerate(f):
+                idx2code[lvl][cnt] = line.strip()
+    return idx2code
+           
+
+
 def precisionatk(y_true,y_pred,k):
     precision_average = []
-    idx =  (-y_pred).argsort(axis=-1)[:,:k]
-    #print(idx)
+    idx = (-y_pred).argsort(axis=-1)[:,:k]
+    print(idx)
     for i in range(idx.shape[0]):
         precision_sample = 0
         for j in idx[i,:]:
@@ -168,10 +191,10 @@ def load_word_index():
     return word_index
 
 
-def create_X(corpus,filename):
+def create_X(corpus,word_index,maxlen,filename):
     """ Replaces word by indexes followed by padding. The corpus features are saved to the disk."""
     seq = [[word_index[tk] for tk in doc.split() if tk in word_index] for doc in corpus]
-    X = pad_sequences(seq,maxlen=MAX_DOC_LENGTH,padding="pre",truncating="post")
+    X = pad_sequences(seq,maxlen=maxlen,padding="pre",truncating="post")
     X = csr_matrix(np.array(X))
     scipy.sparse.save_npz("../temp/{}.npz".format(filename),X)
     
@@ -201,7 +224,8 @@ def main():
     MAX_WORDS = 30000
     MAX_DOC_LENGTH = 500
     EMBEDDING_DIM = 300
-    #
+    
+    #Set the size of the samples.
     N_SAMPLE_train = 5
     N_SAMPLE_test = 5
 
@@ -211,6 +235,7 @@ def main():
     filepath_test_split = "../data/stratification/test.txt"
     filepath_embeddings = "../data/embeddings/cbow_s300.txt"
     filepath_codes = "../data/codes/"
+    filepath_results = "../results/"
 
     preprocessing = False
     run_model = True
@@ -232,7 +257,7 @@ def main():
         print("Splits loaded.")    
 
         print("Creating sparse representation for the labels.")
-        label_binarizer(y_train,y_test,label_binarizer)
+        label_binarizer(y_train,y_test,filepath_codes)
         print("ys created and saved to disk.")
 
         corpus_train = [cleantext(celex2text[celex].replace("__SENT__"," ")) for celex in celex_train]
@@ -241,10 +266,10 @@ def main():
         word_index = create_word_index(corpus_train,MAX_WORDS)
         print("Word index created.")
 
-        create_X(corpus_train,"X_train")
+        create_X(corpus_train,word_index,MAX_DOC_LENGTH,"X_train")
         print("X_train saved.")
 
-        create_X(corpus_test,"X_test")
+        create_X(corpus_test,word_index,MAX_DOC_LENGTH,"X_test")
         print("X_test saved.")
 
 
@@ -252,6 +277,7 @@ def main():
     #The trained models are stored at ../models. 
     #Plots on the model losses are stored at ../plots.
     if run_model:
+
         word_index = load_word_index()
         vocab_size = len(word_index) + 1
 
@@ -320,8 +346,18 @@ def main():
 
         y_pred = model.predict(X_test)
 
+
+
+        idx2code = load_codes(filepath_codes)
+        #Save EuroVoc predicted labels to disk.
         for i,lvl in enumerate(["dom","mts","terms"]):
-            for k in [1,3,5, 21]:
+            filepath_lvl_results = "{}{}.txt".format(filepath_results,lvl)
+            save_results(y_bin_test[lvl],y_pred[i],idx2code[lvl],filepath_lvl_results)
+        
+
+        #Computes the precision at k for k=[1,3,5].
+        for i,lvl in enumerate(["dom","mts","terms"]):
+            for k in [1,3,5]:
                 print(lvl,"P@k={}".format(k),precisionatk(y_bin_test[lvl],y_pred[i],k))
 
 
