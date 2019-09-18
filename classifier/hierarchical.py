@@ -1,36 +1,39 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+
 import io,json
+import string
 from collections import defaultdict
-import scipy.sparse
 
 import numpy as np
-from scipy.sparse import coo_matrix,csr_matrix
+import scipy.sparse
+from scipy.sparse import csr_matrix
 from sklearn.feature_extraction.text import CountVectorizer
-
-import keras
-from keras import regularizers
-from keras.layers import Input, Activation,Embedding, LSTM, Dense,Bidirectional,Dropout,TimeDistributed,GRU
-from keras.models import Model
-from keras import layers
-from keras.models import Sequential
-from keras.preprocessing.sequence import pad_sequences
-from attention import AttentionWithContext
-
 from sklearn.preprocessing import MultiLabelBinarizer
 
-
+import keras
+import keras.backend as K
 from keras.callbacks import EarlyStopping,ModelCheckpoint
+from keras.engine.topology import Layer
+from keras import layers
+from keras.layers import Input,Embedding,LSTM,Dense,Bidirectional,Dropout
+from keras.models import load_model,Model,Sequential
+from keras.preprocessing.sequence import pad_sequences
+from keras import regularizers
+
 import matplotlib.pyplot as plt
-from keras.models import load_model
+
+from attention import AttentionWithContext
+
 import tensorflow as tf
 
-from keras.engine.topology import Layer
-import keras.backend as K
+
 class Pentanh(Layer):
 
     def __init__(self, **kwargs):
         super(Pentanh, self).__init__(**kwargs)
         self.supports_masking = True
-        self.__name__ = 'pentanh'
+        self.__name__ = "pentanh"
 
     def call(self, inputs): return K.switch(K.greater(inputs,0), K.tanh(inputs), 0.25 * K.tanh(inputs))
 
@@ -38,24 +41,25 @@ class Pentanh(Layer):
 
     def compute_output_shape(self, input_shape): return input_shape
 
-keras.utils.generic_utils.get_custom_objects().update({'pentanh': Pentanh()})
+keras.utils.generic_utils.get_custom_objects().update({"pentanh": Pentanh()})
 
-import string
+
 pontuacao = string.punctuation+'\u2026'+'\xbb'+'\xab'+'\xba'+'“'+'’'+'”'+'‘'+'–'
 phorbidden = list(pontuacao.replace('-','').replace('_',''))
-phorbidden += list('0123456789')
+phorbidden += list("0123456789")
 def asphorbidden(token):
     return any(x in token for x in phorbidden)
 
 def cleantext(txt):
     words = txt.split()
-    new_text = ' '.join([w for w in words if not asphorbidden(w)]).lower()
+    new_text = " ".join([w for w in words if not asphorbidden(w)]).lower()
     return new_text
 
 
 def precisionatk(y_true,y_pred,k):
     precision_average = []
     idx =  (-y_pred).argsort(axis=-1)[:,:k]
+    #print(idx)
     for i in range(idx.shape[0]):
         precision_sample = 0
         for j in idx[i,:]:
@@ -66,17 +70,16 @@ def precisionatk(y_true,y_pred,k):
     return np.mean(precision_average)
 
 
-# import Levenshtein
 def create_embedding_matrix(filepath, word_index, embedding_dim):
     vocab_size = len(word_index)+1   # Adding again 1 because of reserved 0 index
-    embedding_matrix = np.random.random((vocab_size, EMBEDDING_DIM))
-    with io.open(filepath,encoding = 'utf8') as f:
+    embedding_matrix = np.random.random((vocab_size, embedding_dim))
+    with io.open(filepath,encoding = "utf8") as f:
         for i,line in enumerate(f):
             if i == 0:
                 continue
-            if '00\u2009% 0.048951 -0.002307 0.021459 0.016691 -0.043448 -0.063223 -0.026633 0.037860 0.042934' in line:
+            if "00\u2009% 0.048951 -0.002307 0.021459 0.016691 -0.043448 -0.063223 -0.026633 0.037860 0.042934" in line:
                 continue
-            if '00\u2009% 0.003048 -0.021540 -0.010371 -0.037366 -0.004355 -0.055332 0.045417 -0.053561 0.038612' in line:
+            if "00\u2009% 0.003048 -0.021540 -0.010371 -0.037366 -0.004355 -0.055332 0.045417 -0.053561 0.038612" in line:
                 continue
             word, *vector = line.split()
             if word in word_index:
@@ -85,246 +88,274 @@ def create_embedding_matrix(filepath, word_index, embedding_dim):
                     vector, dtype=np.float32)[:embedding_dim]
             # else:
                 #find the two words most similar
-
-
     return embedding_matrix
 
 
-BATCH_SIZE=40
-N_EPOCHS= 15
-#
-MAX_WORDS = 30000
-MAX_DOC_LENGTH = 500
-EMBEDDING_DIM = 300
-#
-N_SAMPLE_train = 10000000000000
-N_SAMPLE_test = 10000000000000
-
-
-
-###############################################################
-###############################################################
-###############################################################
-
-if True:
-
-    # create main dict with texts and the respective celex (as key)
+def load_eurlex_pt(filepath_eurlex_pt):
+    """Create main dict with texts and the respective celex (as key)."""
     celex2text = {}
-    # with io.open('../data/clean/clean_txt.json',encoding = 'utf8') as f:
-    with io.open('../data/clean_txt_withallwords.json',encoding = 'utf8') as f:
+    with io.open(filepath_eurlex_pt,encoding="utf8") as f:
         for i,line in enumerate(f):
             data = json.loads(line)
-            celex2text[data['celex']] = data['txt']
-    print("Textos lidos")
+            celex2text[data["celex"]] = data["txt"]
+    return celex2text
 
 
-    y_train = defaultdict(list)
-    celex_train = []
-    with io.open('../data/stratification/train_val.txt') as f:
+def load_split(filepath_split, N_SAMPLE):
+    """Loads the celex keys and the labels for the 3 hierarchical levels."""
+    y = defaultdict(list)
+    celexs = []
+    with io.open(filepath_split) as f:
         for i,line in enumerate(f):
-            if i >= N_SAMPLE_train:
+            if i >= N_SAMPLE:
                 break
 
-            celex,doms,mts,terms = line.split('|')
+            celex,doms,mts,terms = line.split("|")
             celex = celex.strip()
-            doms = doms.strip().split(',')
-            mts = mts.strip().split(',')
-            terms = terms.strip().split(',')
-            y_train['dom'].append(doms)
-            y_train['mts'].append(mts)
-            y_train['terms'].append(terms)
+            doms = doms.strip().split(",")
+            mts = mts.strip().split(",")
+            terms = terms.strip().split(",")
+            y["dom"].append(doms)
+            y["mts"].append(mts)
+            y["terms"].append(terms)
 
-            celex_train.append(celex)
+            celexs.append(celex)
+    return celexs,y
 
-    y_test = defaultdict(list)
-    celex_test = []
-    with io.open('../data/stratification/test.txt') as f:
-        for i,line in enumerate(f):
-            if i >= N_SAMPLE_test:
-                break
 
-            celex,doms,mts,terms = line.split('|')
-            celex = celex.strip()
-            doms = doms.strip().split(',')
-            mts = mts.strip().split(',')
-            terms = terms.strip().split(',')
-
-            y_test['dom'].append(doms)
-            y_test['mts'].append(mts)
-            y_test['terms'].append(terms)
-
-            celex_test.append(celex)
-
+def label_binarizer(y_train,y_test,filepath_codes):
+    """Performs the binarization of the EuroVoc labels, creating a sequencial index. These indexes are stored in
+    disk files. Then, new binaries labels are created and also persisted to the disk."""
     y_bin_train = {}
     y_bin_test = {}
-    for lvl in ['dom','mts','terms']:
+    for lvl in ["dom","mts","terms"]:
         y = y_train[lvl] + y_test[lvl]
         mlb = MultiLabelBinarizer(sparse_output = True)
         y_bin = mlb.fit_transform(y)
-        with io.open('../data/codes/codes_{}.txt'.format(lvl),'w') as f_out:
+        with io.open("{}codes_{}.txt".format(filepath_codes,lvl),"w") as f_out:
             for cl in mlb.classes_:
-                f_out.write(cl+'\n')
+                f_out.write(cl+"\n")
         y_bin_train[lvl] = mlb.transform(y_train[lvl])
         y_bin_test[lvl] = mlb.transform(y_test[lvl])
 
-        scipy.sparse.save_npz('../temp/y_{}_bin_train.npz'.format(lvl),y_bin_train[lvl])
-        scipy.sparse.save_npz('../temp/y_{}_bin_test.npz'.format(lvl),y_bin_test[lvl])
+        scipy.sparse.save_npz("../temp/y_{}_bin_train.npz".format(lvl),y_bin_train[lvl])
+        scipy.sparse.save_npz("../temp/y_{}_bin_test.npz".format(lvl),y_bin_test[lvl])
 
-        print(y_bin_train[lvl].shape,y_bin_test[lvl].shape)
+        print(lvl, y_bin_train[lvl].shape,y_bin_test[lvl].shape)
 
 
-    print("y construidos e gravados")
-
-    corpus_train = [cleantext(celex2text[celex].replace('__SENT__',' ')) for celex in celex_train]
-    corpus_test = [cleantext(celex2text[celex].replace('__SENT__',' ')) for celex in celex_test]
-
-    # vectorizes to replace word by indexes followed by padding
-    vectorizer = CountVectorizer(max_features = MAX_WORDS,lowercase = False,token_pattern = r"\S\S+")
+def create_word_index(corpus_train,max_features):
+    """ Creates word indexes for the words in the training corpus."""
+    vectorizer = CountVectorizer(max_features=max_features,lowercase=False,token_pattern=r"\S\S+")
     vectorizer.fit_transform(corpus_train)
     word_index = vectorizer.vocabulary_
     word_index = {tk:(ind+1) for tk,ind in word_index.items()}
     vocab_size = len(word_index)+1
-    with io.open('../temp/word_index.tsv','w',encoding = 'utf8') as f_out:
+    with io.open("../temp/word_index.tsv","w",encoding = "utf8") as f_out:
         for word,ind in word_index.items():
-            f_out.write('\t'.join([word.replace('\t',' '),str(ind)]))
-            f_out.write('\n')
+            f_out.write("\t".join([word.replace("\t"," "),str(ind)]))
+            f_out.write("\n")
+    return word_index
 
 
-
-    # pad for train
-    seq = [[word_index[tk] for tk in doc.split() if tk in word_index] for doc in corpus_train]
-    X_train = pad_sequences(seq,maxlen = MAX_DOC_LENGTH,padding='pre',truncating='post')
-    X_train = csr_matrix(np.array(X_train))
-    scipy.sparse.save_npz('../temp/X_train.npz',X_train)
-    print("X_train salvo")
-
-    #pad for test
-    seq = [[word_index[tk] for tk in doc.split() if tk in word_index] for doc in corpus_test]
-    X_test = pad_sequences(seq,maxlen = MAX_DOC_LENGTH,padding='pre',truncating="post")
-    X_test = csr_matrix(np.array(X_test))
-    scipy.sparse.save_npz('../temp/X_test.npz',X_test)
-    print("X_test salvo")
-
-if True:
-
+def load_word_index():
     word_index = {}
-    with io.open('../temp/word_index.tsv',encoding = 'utf8') as f:
+    with io.open("../temp/word_index.tsv",encoding="utf8") as f:
         for line in f:
-            line = line.split('\t')
+            line = line.split("\t")
             if len(line) == 2:
                 word_index[line[0]] = int(line[1])
-    vocab_size = len(word_index) + 1
-
-    # N_SAMPLE_train = 1000
-    # N_SAMPLE_test = 100
-
-    X_train = scipy.sparse.load_npz('../temp/X_train.npz')
-    y_bin_train = {}
-    for lvl in ['dom','mts','terms']:
-        y_bin_train[lvl] = scipy.sparse.load_npz('../temp/y_{}_bin_train.npz'.format(lvl))
-        # y_bin_train[lvl] = y_bin_train[lvl][np.arange(N_SAMPLE_train),:]
-
-    X_test = scipy.sparse.load_npz('../temp/X_test.npz')
-    y_bin_test = {}
-    for lvl in ['dom','mts','terms']:
-        y_bin_test[lvl] = scipy.sparse.load_npz('../temp/y_{}_bin_test.npz'.format(lvl))
-        # y_bin_test[lvl] = y_bin_test[lvl][np.arange(N_SAMPLE_test),:]
-
-    # X_train = X_train[np.arange(N_SAMPLE_train),:]
-    # X_test = X_test[np.arange(N_SAMPLE_test),:]
+    return word_index
 
 
-    embedding_matrix = create_embedding_matrix('../data/embeddings/cbow_s300.txt',word_index,EMBEDDING_DIM)
+def create_X(corpus,filename):
+    """ Replaces word by indexes followed by padding. The corpus features are saved to the disk."""
+    seq = [[word_index[tk] for tk in doc.split() if tk in word_index] for doc in corpus]
+    X = pad_sequences(seq,maxlen=MAX_DOC_LENGTH,padding="pre",truncating="post")
+    X = csr_matrix(np.array(X))
+    scipy.sparse.save_npz("../temp/{}.npz".format(filename),X)
+    
+
+def load_X_y(split, N_SAMPLE=None):
+    """ Loads both features and binary labels from the disk."""
+    X = scipy.sparse.load_npz("../temp/X_{}.npz".format(split))
+    y_bin = {}
+    for lvl in ["dom","mts","terms"]:
+        y_bin[lvl] = scipy.sparse.load_npz("../temp/y_{}_bin_{}.npz".format(lvl,split))
+
+    if N_SAMPLE:
+        X = X[np.arange(N_SAMPLE),:]
+        for lvl in ["dom","mts","terms"]:
+            y_bin[lvl] = y_bin[lvl][np.arange(N_SAMPLE),:]
+
+    return X, y_bin
 
 
-    embedding_layer = Embedding(
-        output_dim=EMBEDDING_DIM,
-        input_dim=vocab_size,
-        input_length=MAX_DOC_LENGTH,
-        weights=[embedding_matrix],
-        trainable=True,
-        mask_zero=True)
 
 
-    doc_input = Input(shape=(MAX_DOC_LENGTH,), dtype='int32',name = 'main_input')
-    embedded_sequences = embedding_layer(doc_input)
-    l_lstm = Bidirectional(LSTM(256, activation = 'pentanh',return_sequences=True))(embedded_sequences)
-    l_lstm = Dropout(0.3)(l_lstm)
-    l_att = AttentionWithContext()(l_lstm)
-    l_att = Dense(512)(l_att)
-    # l_att = Dense(512)(l_att)
+def main():
+
+    BATCH_SIZE=40
+    N_EPOCHS= 10
+    #
+    MAX_WORDS = 30000
+    MAX_DOC_LENGTH = 500
+    EMBEDDING_DIM = 300
+    #
+    N_SAMPLE_train = 5
+    N_SAMPLE_test = 5
 
 
-    # middle_dom = Dense(16,activation = 'relu')(l_att)
-    out_dom = Dense(y_bin_train['dom'].shape[1], activation='sigmoid', name='dense_out_dom')(l_att)
+    filepath_eurlex_pt = "../data/clean_txt_withallwords.json"
+    filepath_train_split = "../data/stratification/train_val.txt"
+    filepath_test_split = "../data/stratification/test.txt"
+    filepath_embeddings = "../data/embeddings/cbow_s300.txt"
+    filepath_codes = "../data/codes/"
 
-    merged_text_dom = keras.layers.concatenate([l_att, out_dom], axis= -1) #text,dom
-    # middle_mts = Dense(64,activation = 'relu')(merged_text_dom)
-    out_mts = Dense(y_bin_train['mts'].shape[1], activation='sigmoid', name='dense_out_mts')(merged_text_dom)
+    preprocessing = False
+    run_model = True
+
+    ###############################################################
+    ###############################################################
+    ###############################################################
 
 
-    merged_text_dom_mts = keras.layers.concatenate([l_att, out_dom, out_mts], axis= -1) #text,dom,mts
-    # middle_terms = Dense(512,activation = 'relu')(merged_text_dom_mts)
-    out_terms = Dense(y_bin_train['terms'].shape[1], activation='sigmoid', name='dense_out_terms')(merged_text_dom_mts)
+    #Preprocessing.
+    #You should execute run this code in the first run or if you change the training and testing splits.
+    if preprocessing:
 
-    model = Model(inputs=[doc_input], outputs=[out_dom, out_mts, out_terms])
-    # adam = keras.optimizers.Adam(lr=0.01,decay = 0.0005)
-    # opt = keras.optimizers.RMSprop(lr=0.05,decay =0.004, clipnorm=1.0)
-    # opt = keras.optimizers.Adam(lr=0.05,decay =0.004, clipnorm=1.0)
-    model.compile(optimizer='adam',
-                      loss={'dense_out_dom': 'binary_crossentropy', 'dense_out_mts': 'binary_crossentropy', 'dense_out_terms': 'binary_crossentropy'},
-                      loss_weights={'dense_out_dom': 0.001, 'dense_out_mts': 0.01, 'dense_out_terms': 1})
-    model.summary()
+        celex2text = load_eurlex_pt(filepath_eurlex_pt)
+        print("Corpus loaded.")
 
-    # es = EarlyStopping(monitor='val_dense_out_terms_loss', mode='min', min_delta=0, verbose = 1,patience = 20)
-    mc = ModelCheckpoint('models/hierarchical_v6.{epoch:02d}.h5', monitor='val_dense_out_terms_loss', mode='min', verbose=1, save_best_only=False)
+        celex_train,y_train = load_split(filepath_train_split,N_SAMPLE_train)
+        celex_test,y_test = load_split(filepath_test_split,N_SAMPLE_test)
+        print("Splits loaded.")    
 
-    history = model.fit({'main_input': X_train},
-                            {'dense_out_dom': y_bin_train['dom'],
-                            'dense_out_mts': y_bin_train['mts'],
-                            'dense_out_terms': y_bin_train['terms']},
-                            validation_data = ({'main_input': X_test},
-                                {'dense_out_dom': y_bin_test['dom'],
-                                'dense_out_mts': y_bin_test['mts'],
-                                'dense_out_terms': y_bin_test['terms']}
+        print("Creating sparse representation for the labels.")
+        label_binarizer(y_train,y_test,label_binarizer)
+        print("ys created and saved to disk.")
+
+        corpus_train = [cleantext(celex2text[celex].replace("__SENT__"," ")) for celex in celex_train]
+        corpus_test = [cleantext(celex2text[celex].replace("__SENT__"," ")) for celex in celex_test]
+
+        word_index = create_word_index(corpus_train,MAX_WORDS)
+        print("Word index created.")
+
+        create_X(corpus_train,"X_train")
+        print("X_train saved.")
+
+        create_X(corpus_test,"X_test")
+        print("X_test saved.")
+
+
+    #Trains the model on X_train data. Uses X_test as the validation.
+    #The trained models are stored at ../models. 
+    #Plots on the model losses are stored at ../plots.
+    if run_model:
+        word_index = load_word_index()
+        vocab_size = len(word_index) + 1
+
+        X_train, y_bin_train = load_X_y("train", N_SAMPLE_train)
+        X_test, y_bin_test = load_X_y("test", N_SAMPLE_test)
+
+        embedding_matrix = create_embedding_matrix(filepath_embeddings,word_index,EMBEDDING_DIM)
+
+        embedding_layer = Embedding(
+            output_dim=EMBEDDING_DIM,
+            input_dim=vocab_size,
+            input_length=MAX_DOC_LENGTH,
+            weights=[embedding_matrix],
+            trainable=True,
+            mask_zero=True)
+
+        doc_input = Input(shape=(MAX_DOC_LENGTH,), dtype="int32",name = "main_input")
+        embedded_sequences = embedding_layer(doc_input)
+        l_lstm = Bidirectional(LSTM(256, activation = "pentanh",return_sequences=True))(embedded_sequences)
+        l_lstm = Dropout(0.3)(l_lstm)
+        l_att = AttentionWithContext()(l_lstm)
+        l_att = Dense(512)(l_att)
+
+        out_dom = Dense(y_bin_train["dom"].shape[1], activation="sigmoid", name="dense_out_dom")(l_att)
+
+        merged_text_dom = keras.layers.concatenate([l_att, out_dom], axis= -1) #text,dom
+        out_mts = Dense(y_bin_train["mts"].shape[1], activation="sigmoid", name="dense_out_mts")(merged_text_dom)
+
+        merged_text_dom_mts = keras.layers.concatenate([l_att, out_dom, out_mts], axis= -1) #text,dom,mts
+        out_terms = Dense(y_bin_train["terms"].shape[1], activation="sigmoid", name="dense_out_terms")(merged_text_dom_mts)
+
+        model = Model(inputs=[doc_input],outputs=[out_dom, out_mts, out_terms])
+        model.compile(optimizer="adam",
+                      loss={
+                          "dense_out_dom": "binary_crossentropy", 
+                          "dense_out_mts": "binary_crossentropy", 
+                          "dense_out_terms": "binary_crossentropy"},
+                      loss_weights={
+                          "dense_out_dom": 0.001, 
+                          "dense_out_mts": 0.01, 
+                          "dense_out_terms": 1})
+        model.summary()
+
+        #es = EarlyStopping(monitor="val_dense_out_terms_loss", mode="min", min_delta=0, verbose=1, patience=20)
+        mc = ModelCheckpoint("../models/hierarchical.{epoch:02d}.h5", 
+                             monitor="val_dense_out_terms_loss", 
+                             mode="min", 
+                             verbose=1, 
+                             save_best_only=False)
+
+        history = model.fit(x = {"main_input": X_train},
+                            y = {"dense_out_dom": y_bin_train["dom"],
+                                "dense_out_mts": y_bin_train["mts"],
+                                "dense_out_terms": y_bin_train["terms"]},
+                            validation_data = ({"main_input": X_test},
+                                {"dense_out_dom": y_bin_test["dom"],
+                                "dense_out_mts": y_bin_test["mts"],
+                                "dense_out_terms": y_bin_test["terms"]}
                                 ),
-                                epochs=N_EPOCHS,
-                                verbose = 2,
-                                batch_size=BATCH_SIZE,
-                                callbacks = [mc]
-                                )
+                            epochs=N_EPOCHS,
+                            verbose=2,
+                            batch_size=BATCH_SIZE,
+                            callbacks = [mc]
+                            #callbacks = [es,mc]
+                            )
 
-    y_pred = model.predict(X_test)
+        y_pred = model.predict(X_test)
 
-    for i,lvl in enumerate(['dom','mts','terms']):
-        for k in [1,3,5]:
-            print(lvl,"P@k={}".format(k),precisionatk(y_bin_test[lvl],y_pred[i],k))
+        for i,lvl in enumerate(["dom","mts","terms"]):
+            for k in [1,3,5, 21]:
+                print(lvl,"P@k={}".format(k),precisionatk(y_bin_test[lvl],y_pred[i],k))
 
 
+        #Plot main loss.
+        plt.plot(history.history["loss"])
+        plt.plot(history.history["val_loss"])
+        plt.legend(["train", "test"], loc="upper right")
+        plt.title("main loss")
+        plt.savefig("../plots/main_loss.png")
 
-    plt.plot(history.history['loss'])
-    plt.plot(history.history['val_loss'])
-    plt.legend(['train', 'test'], loc='upper right')
-    plt.title("main loss")
-    plt.savefig('plots/main_loss.png')
+        #Plot domains loss.
+        plt.clf()
+        plt.plot(history.history["dense_out_dom_loss"])
+        plt.plot(history.history["val_dense_out_dom_loss"])
+        plt.legend(["train", "test"], loc="upper right")
+        plt.title("dom loss")
+        plt.savefig("../plots/dom_loss.png")
 
-    plt.clf()
-    plt.plot(history.history['dense_out_dom_loss'])
-    plt.plot(history.history['val_dense_out_dom_loss'])
-    plt.legend(['train', 'test'], loc='upper right')
-    plt.title("dom loss")
-    plt.savefig('plots/dom_loss.png')
+        #Plot microthesauri loss.
+        plt.clf()
+        plt.plot(history.history["dense_out_mts_loss"])
+        plt.plot(history.history["val_dense_out_mts_loss"])
+        plt.legend(["train", "test"], loc="upper right")
+        plt.title("mts loss")
+        plt.savefig("../plots/mts_loss.png")
 
-    plt.clf()
-    plt.plot(history.history['dense_out_mts_loss'])
-    plt.plot(history.history['val_dense_out_mts_loss'])
-    plt.legend(['train', 'test'], loc='upper right')
-    plt.title("mts loss")
-    plt.savefig('plots/mts_loss.png')
+        #Plot descriptors loss.
+        plt.clf()
+        plt.plot(history.history["dense_out_terms_loss"])
+        plt.plot(history.history["val_dense_out_terms_loss"])
+        plt.legend(["train", "test"], loc="upper right")
+        plt.title("terms loss")
+        plt.savefig("../plots/terms_loss.png")
 
-    plt.clf()
-    plt.plot(history.history['dense_out_terms_loss'])
-    plt.plot(history.history['val_dense_out_terms_loss'])
-    plt.legend(['train', 'test'], loc='upper right')
-    plt.title("terms loss")
-    plt.savefig('plots/terms_loss.png')
+
+if __name__== "__main__":
+    main()
