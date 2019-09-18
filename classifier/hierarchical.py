@@ -237,6 +237,10 @@ def main():
     filepath_codes = "../data/codes/"
     filepath_results = "../results/"
 
+    #We adpoted the token "__SENT__" as the sentence delimiter.
+    #Change this parameter according to your corpus.
+    sentence_delimiter = "__SENT__"
+
     preprocessing = False
     run_model = True
 
@@ -260,8 +264,8 @@ def main():
         label_binarizer(y_train,y_test,filepath_codes)
         print("ys created and saved to disk.")
 
-        corpus_train = [cleantext(celex2text[celex].replace("__SENT__"," ")) for celex in celex_train]
-        corpus_test = [cleantext(celex2text[celex].replace("__SENT__"," ")) for celex in celex_test]
+        corpus_train = [cleantext(celex2text[celex].replace(sentence_delimiter," ")) for celex in celex_train]
+        corpus_test = [cleantext(celex2text[celex].replace(sentence_delimiter," ")) for celex in celex_test]
 
         word_index = create_word_index(corpus_train,MAX_WORDS)
         print("Word index created.")
